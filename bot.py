@@ -46,9 +46,9 @@ ALLOWED_CHAT_IDS = {
     if x.strip()
 }
 HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "25"))
-# Лимиты на чат. 0 = без лимита. Хранятся в памяти (рестарт их обнуляет).
+# Лимиты на пользователя. 0 = без лимита. Хранятся в памяти (рестарт их обнуляет).
 RATE_MIN_INTERVAL = float(os.environ.get("RATE_LIMIT_MIN_INTERVAL", "180"))
-RATE_DAILY = int(os.environ.get("RATE_LIMIT_DAILY", "10"))
+RATE_DAILY = int(os.environ.get("RATE_LIMIT_DAILY", "50"))
 # Логи по умолчанию выключены (бот stateless). LOG_LEVEL=INFO — только для отладки вручную.
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "off").strip().lower()
 
@@ -477,20 +477,20 @@ HELP = (
 _usage: dict[int, dict] = {}
 
 
-def check_rate_limit(chat_id: int) -> str | None:
+def check_rate_limit(user_id: int) -> str | None:
     """None, если можно; иначе текст ответа. Слот резервируется при разрешении."""
     if RATE_MIN_INTERVAL <= 0 and RATE_DAILY <= 0:
         return None
 
     now = time.time()
     today = time.strftime("%Y-%m-%d")
-    record = _usage.get(chat_id)
+    record = _usage.get(user_id)
     if record is None or record["date"] != today:
-        if len(_usage) > 5000:  # дешёвая чистка старых чатов
+        if len(_usage) > 5000:  # дешёвая чистка старых записей
             for key in [k for k, v in _usage.items() if v["date"] != today]:
                 _usage.pop(key, None)
         record = {"date": today, "count": 0, "last": 0.0}
-        _usage[chat_id] = record
+        _usage[user_id] = record
 
     if RATE_MIN_INTERVAL > 0 and record["last"]:
         elapsed = now - record["last"]
@@ -508,6 +508,7 @@ def check_rate_limit(chat_id: int) -> str | None:
 
 def handle_message(message: dict):
     chat_id = message["chat"]["id"]
+    user_id = (message.get("from") or {}).get("id", chat_id)
     text = (message.get("text") or "").strip()
 
     if ALLOWED_CHAT_IDS and str(chat_id) not in ALLOWED_CHAT_IDS:
@@ -528,7 +529,7 @@ def handle_message(message: dict):
         send(chat_id, "Не вижу корректного номера трамите.\n\n" + HELP)
         return
 
-    limited = check_rate_limit(chat_id)
+    limited = check_rate_limit(user_id)
     if limited:
         send(chat_id, limited)
         return
