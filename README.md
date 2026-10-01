@@ -211,8 +211,9 @@ docker run -d --name mitramite --restart unless-stopped --memory=256m --shm-size
 - `2captcha: ERROR_ZERO_BALANCE` — пополни баланс на 2captcha.
 - `2captcha: таймаут ожидания токена` — сервис не успел; увеличь
   `TWOCAPTCHA_TIMEOUT` или попробуй позже.
-- `RENAPER: {"title": "Error reCAPTCHA..."}` — токен отклонён (низкий score).
-  Попробуй поднять `TWOCAPTCHA_MIN_SCORE` (например, `0.7`).
+- `RENAPER: {"title": "Error reCAPTCHA..."}` — токен отклонён. Повышение
+  `TWOCAPTCHA_MIN_SCORE` не лечит: RENAPER режет токены и 2captcha, и браузера
+  при любом score (форму на сайте убрали, фронт в процессе переделки).
 - `RENAPER вернул не-JSON` — нет доступа к сайту (файрвол,
   старые CA на хосте). В контейнере CA свежие, там проблемы быть не должно.
 - `Не вижу корректного номера трамите` — пришло не число.

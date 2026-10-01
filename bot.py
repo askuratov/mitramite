@@ -386,6 +386,17 @@ def normalize_tramite(raw: str) -> str:
     return digits.zfill(11)
 
 
+def _renaper_error_text(errors) -> str:
+    if isinstance(errors, dict):
+        title = str(errors.get("title", ""))
+        if errors.get("status") == 100 or "recaptcha" in title.lower():
+            return (
+                "RENAPER сейчас отклоняет запросы (reCAPTCHA). Скорее всего, "
+                "проблема на их стороне — попробуй позже."
+            )
+    return f"RENAPER: {json.dumps(errors, ensure_ascii=False)}"
+
+
 def consultar(raw_tramite: str) -> str:
     """Проверяет трамите и возвращает отформатированный текст (или бросает исключение)."""
     tramite = normalize_tramite(raw_tramite)
@@ -400,7 +411,7 @@ def consultar(raw_tramite: str) -> str:
     data = payload.get("data")
     if not data:
         errors = payload.get("errors") or payload
-        raise RuntimeError(f"RENAPER: {json.dumps(errors, ensure_ascii=False)}")
+        raise RuntimeError(_renaper_error_text(errors))
     return format_status(tramite, data)
 
 
